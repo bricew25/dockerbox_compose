@@ -1,0 +1,84 @@
+version: "2.1"
+services:
+
+  tautulli:
+    image: linuxserver/tautulli
+    container_name: tautulli
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Denver
+    volumes:
+      - /tautilli/data:/config
+      - /var/log/tautilli:/logs
+    ports:
+      - 8181:8181
+        #  - 443:443  
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.taut.rule=Host(`info.example.com`)" 
+      - "traefik.http.services.taut.loadbalancer.server.port=8181"
+
+
+  son:
+    image: linuxserver/son
+    container_name: son
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=America/Denver
+      - UMASK_SET=022  
+    volumes:
+      - /son/data:/config
+      - /mnt/plexdrive2/TV:/tv
+      - /mnt/plexdrive2/Kids:/kids
+      - /son/downloads:/downloads
+    ports:
+      - 8989:8989    
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.son.tls=true"  
+      - "traefik.http.routers.son.rule=Host(`tv.example.com`)"
+      - "traefik.http.services.son.loadbalancer.server.port=8989"
+
+  rad:
+    image: ghcr.io/linuxserver/rad
+    container_name: rad
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=America/Denver
+      - UMASK_SET=022 #optional
+    volumes:
+      - /rad/data:/config
+      - /mnt/plexdrive2/Movies:/movies
+      - /rad/downloads:/downloads
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rad.tls=true"
+      - "traefik.http.routers.rad.rule=Host(`movies.example.com`)"
+      - "traefik.http.services.rad.loadbalancer.server.port=7878"
+
+  traefik:
+    image: traefik:latest
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entryPoints.websecure.address=:443"  
+      - "--providers.file.directory=/etc/traefik/dynamic"
+  
+    ports:
+      - "443:443"
+      - "80:80"
+      - "2222:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /selfsigned_test_key:/etc/certs/ 
+      - /certs-traefik.yaml:/etc/traefik/dynamic/certs-traefik.yaml

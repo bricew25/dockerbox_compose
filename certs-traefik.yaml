@@ -1,0 +1,4 @@
+tls:
+  certificates:
+    - certFile: /etc/certs/pub.crt
+      keyFile: /etc/certs/priv.key
